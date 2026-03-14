@@ -1,0 +1,563 @@
+# Calculadora-Cramer-Polar-Rectangular-Reales.
+Calculadora Cramer para uso de estudiantes de Ingeniería Eléctrica
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Calculadora Cramer · Circuitos AC</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background: #060e1a;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, #0a1e3a 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, #0a2a2a 0%, transparent 50%);
+  font-family: 'Share Tech Mono', monospace;
+  color: #e0f4f0;
+  padding: 20px 12px 50px;
+}
+
+/* ─── HEADER ─────────────────────────── */
+header { text-align: center; margin-bottom: 22px; }
+.header-line { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:6px; }
+.header-line .hl { width:36px; height:2px; }
+.header-line .hl:first-child { background: linear-gradient(to right, transparent, #2dd4bf); }
+.header-line .hl:last-child  { background: linear-gradient(to left,  transparent, #2dd4bf); }
+.header-line span { font-size:10px; color:#2dd4bf; letter-spacing:4px; }
+h1 { font-family:'Orbitron',monospace; font-weight:900; font-size:22px; color:#e0f9f5; letter-spacing:3px; }
+.subtitle { font-size:10px; color:#4a7c78; letter-spacing:2px; margin-top:4px; }
+
+/* ─── CARDS ──────────────────────────── */
+.card { background:#0a1628; border:1px solid #1e3a5f; border-radius:8px; padding:14px; margin-bottom:12px; }
+.card-title { font-size:12px; color:#2dd4bf; letter-spacing:2px; margin-bottom:4px; text-transform:uppercase; }
+.card-hint  { font-size:11px; color:#4a7c78; margin-bottom:12px; line-height:1.6; }
+
+/* ─── BOTONES TOGGLE ─────────────────── */
+.ctrl-row   { display:flex; gap:12px; flex-wrap:wrap; }
+.ctrl-group { display:flex; flex-direction:column; gap:5px; }
+.ctrl-label { font-size:11px; color:#7dd3c8; font-weight:bold; }
+.ctrl-hint  { font-size:10px; color:#4a7c78; margin-top:2px; }
+.btn-group  { display:flex; }
+.btn-toggle {
+  padding:8px 14px; border:1px solid; background:transparent;
+  font-family:'Share Tech Mono',monospace; font-size:11px; font-weight:700;
+  cursor:pointer; transition:all 0.2s; line-height:1; white-space:nowrap;
+}
+.btn-toggle:first-child { border-radius:4px 0 0 4px; }
+.btn-toggle:last-child  { border-radius:0 4px 4px 0; }
+.btn-toggle:not(:first-child):not(:last-child) { border-radius:0; border-left:none; }
+.btn-toggle + .btn-toggle { border-left:none; }
+
+.btn-teal              { border-color:#2dd4bf; }
+.btn-teal.active       { background:#2dd4bf; color:#060e1a; }
+.btn-teal:not(.active) { color:#2dd4bf; }
+
+.btn-amber              { border-color:#f59e0b; }
+.btn-amber.active       { background:#f59e0b; color:#060e1a; }
+.btn-amber:not(.active) { color:#f59e0b; }
+
+/* ─── BADGE DE MODO ─────────────────── */
+.mode-badge {
+  display:inline-block; padding:3px 10px; border-radius:20px;
+  font-size:10px; font-weight:700; letter-spacing:1px; margin-left:8px;
+}
+.mode-badge-real   { background:rgba(34,197,94,0.15);  color:#4ade80; border:1px solid #166534; }
+.mode-badge-rect   { background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid #78350f; }
+.mode-badge-polar  { background:rgba(129,140,248,0.15);color:#a5b4fc; border:1px solid #312e81; }
+
+/* ─── MATRIZ ─────────────────────────── */
+.col-headers { display:flex; gap:4px; margin-bottom:5px; padding-left:36px; }
+.col-header  { flex:1; text-align:center; font-size:10px; color:#4a7c78; letter-spacing:1px; min-width:0; }
+.col-header.b-col { color:#f59e0b; }
+
+.matrix-row { display:flex; align-items:flex-start; gap:4px; margin-bottom:8px; }
+.row-label  { width:32px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding-top:7px; flex-shrink:0; }
+.row-num    { font-size:12px; color:#2dd4bf; font-family:'Orbitron',monospace; line-height:1; }
+.row-eq     { font-size:9px; color:#4a7c78; }
+
+.cell       { flex:1; min-width:0; }
+.cell.b-cell{ border-left:2px solid rgba(245,158,11,0.3); padding-left:4px; }
+
+/* Modo REAL: un solo input por celda */
+.input-single { position:relative; }
+.input-single input {
+  width:100%; padding:9px 4px 9px 8px;
+  background:#060e1a; border:1px solid #1e3a5f;
+  color:#e0f4f0; font-family:'Share Tech Mono',monospace; font-size:13px;
+  outline:none; border-radius:4px; -moz-appearance:textfield;
+}
+.input-single input:focus { border-color:#22c55e; box-shadow:0 0 0 2px rgba(34,197,94,0.15); }
+
+/* Modo COMPLEJO: dos inputs por celda */
+.input-pair { display:flex; gap:3px; }
+.input-wrap { position:relative; flex:1; min-width:0; }
+.input-pfx  {
+  position:absolute; left:5px; top:50%; transform:translateY(-50%);
+  font-size:9px; color:#4a7c78; pointer-events:none; z-index:1;
+}
+.input-wrap input {
+  width:100%; padding:9px 3px 9px 26px;
+  background:#060e1a; border:1px solid #1e3a5f;
+  color:#e0f4f0; font-family:'Share Tech Mono',monospace; font-size:12px;
+  outline:none; border-radius:4px; -moz-appearance:textfield;
+}
+.input-wrap input:focus { border-color:#2dd4bf; box-shadow:0 0 0 2px rgba(45,212,191,0.15); }
+
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
+.input-sublabel { font-size:9px; color:#2a4a46; text-align:center; margin-top:2px; }
+
+/* ─── BOTÓN CALCULAR ─────────────────── */
+#btn-solve {
+  width:100%; padding:15px;
+  background:linear-gradient(135deg,#0f7a6e,#0d9488);
+  border:none; color:#e0f9f5;
+  font-family:'Orbitron',monospace; font-size:13px; font-weight:700;
+  letter-spacing:3px; cursor:pointer; border-radius:6px;
+  box-shadow:0 4px 24px rgba(13,148,136,0.35);
+  margin-bottom:12px; transition:all 0.2s;
+}
+#btn-solve:active { transform:scale(0.98); }
+
+/* ─── ERROR ──────────────────────────── */
+.error {
+  background:#1a0a0a; border:1px solid #ef4444;
+  border-radius:6px; padding:12px 14px; margin-bottom:12px;
+  color:#f87171; font-size:12px; display:none; line-height:1.6;
+}
+
+/* ─── RESULTADOS ─────────────────────── */
+.result-det {
+  padding:12px; background:#060e1a; border-radius:6px;
+  border:1px solid #1e3a5f; margin-bottom:10px;
+}
+.result-det-label { font-size:11px; color:#7dd3c8; margin-bottom:6px; }
+.result-det-grid  { display:flex; gap:8px; flex-wrap:wrap; }
+.result-val-box   { flex:1; min-width:160px; padding:8px 10px; border-radius:5px; }
+.rvb-rect  { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); }
+.rvb-polar { background:rgba(129,140,248,0.08); border:1px solid rgba(129,140,248,0.25); }
+.rvb-real  { background:rgba(34,197,94,0.08);  border:1px solid rgba(34,197,94,0.25); }
+.rvb-tag   { font-size:9px; letter-spacing:2px; margin-bottom:3px; }
+.rvb-tag-rect  { color:#f59e0b; }
+.rvb-tag-polar { color:#818cf8; }
+.rvb-tag-real  { color:#4ade80; }
+.rvb-val   { font-size:14px; color:#e0f9f5; }
+.result-det-note { font-size:10px; color:#4a7c78; margin-top:8px; }
+
+.divider { display:flex; align-items:center; gap:8px; margin:8px 0 10px; }
+.divider hr   { flex:1; border:none; border-top:1px solid #1e3a5f; }
+.divider span { font-size:10px; color:#2a4a46; letter-spacing:2px; white-space:nowrap; }
+
+.sub-dets { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+.sub-det  { flex:1; min-width:130px; padding:10px; background:#060e1a; border-radius:6px; border:1px solid #1e3a5f; }
+.sub-det-label { font-size:11px; color:#f59e0b; margin-bottom:2px; }
+.sub-det-desc  { font-size:9px; color:#4a7c78; margin-bottom:6px; }
+.sub-det-vals  { display:flex; flex-direction:column; gap:3px; }
+.sub-det-val   { font-size:12px; color:#e0f4f0; }
+.sub-det-alt   { font-size:10px; color:#4a7c78; }
+
+.solutions-box { padding:14px; background:#020810; border-radius:6px; border:1px solid rgba(45,212,191,0.2); }
+.sol-title { font-size:11px; color:#2dd4bf; letter-spacing:2px; margin-bottom:10px; }
+.sol-row   { padding:10px 12px; background:#0a1628; border-radius:5px; margin-bottom:8px; }
+.sol-header{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.sol-var   { font-size:17px; color:#818cf8; font-family:'Orbitron',monospace; font-weight:700; min-width:30px; }
+.sol-eq    { font-size:14px; color:#7dd3c8; }
+.sol-vals  { display:flex; gap:6px; flex-wrap:wrap; }
+.sol-val-box { flex:1; min-width:140px; padding:6px 10px; border-radius:4px; }
+.sol-val-tag { font-size:9px; letter-spacing:2px; margin-bottom:2px; }
+.sol-val-num { font-size:13px; color:#e0f9f5; }
+
+/* ─── CRÉDITOS ───────────────────────── */
+.credit-card {
+  background:linear-gradient(135deg,#0a1628,#091420);
+  border:1px solid #1e3a5f; border-top:3px solid #2dd4bf;
+  border-radius:8px; padding:18px; margin-bottom:12px; text-align:center;
+}
+.credit-icon  { font-size:22px; margin-bottom:8px; }
+.credit-by    { font-size:10px; color:#4a7c78; letter-spacing:3px; margin-bottom:6px; }
+.credit-name  { font-family:'Orbitron',monospace; font-size:16px; color:#2dd4bf; font-weight:700; letter-spacing:2px; margin-bottom:6px; }
+.credit-role  { font-size:12px; color:#7dd3c8; margin-bottom:3px; }
+.credit-inst  { font-size:11px; color:#a5b4fc; margin-bottom:3px; }
+.credit-place { font-size:11px; color:#4a7c78; }
+
+footer { text-align:center; margin-top:10px; font-size:10px; color:#1a2e40; letter-spacing:2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-line">
+    <div class="hl"></div><span>ANÁLISIS DE CIRCUITOS ELÉCTRICOS</span><div class="hl"></div>
+  </div>
+  <h1>CALCULADORA CRAMER</h1>
+  <p class="subtitle">REGLA DE CRAMER · NÚMEROS REALES Y COMPLEJOS · AC / DC</p>
+</header>
+
+<!-- ══ PASO 1 ══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">⚙️ Paso 1 — Configuración del sistema</div>
+  <div class="card-hint">
+    Elige cuántas ecuaciones tiene tu circuito (mallas o nodos) y el tipo de valores que vas a ingresar.
+  </div>
+  <div class="ctrl-row">
+
+    <!-- Tamaño -->
+    <div class="ctrl-group">
+      <span class="ctrl-label">Número de ecuaciones</span>
+      <div class="btn-group">
+        <button class="btn-toggle btn-teal active" id="btn2" onclick="setSize(2)">2×2</button>
+        <button class="btn-toggle btn-teal"         id="btn3" onclick="setSize(3)">3×3</button>
+        <button class="btn-toggle btn-teal"         id="btn4" onclick="setSize(4)">4×4</button>
+      </div>
+      <span class="ctrl-hint">2, 3 ó 4 mallas / nodos</span>
+    </div>
+
+    <!-- Formato de entrada -->
+    <div class="ctrl-group">
+      <span class="ctrl-label">Tipo de valores a ingresar</span>
+      <div class="btn-group">
+        <button class="btn-toggle btn-amber active" id="inReal"  onclick="setInput('real')">Reales</button>
+        <button class="btn-toggle btn-amber"        id="inRect"  onclick="setInput('rect')">Rectangular</button>
+        <button class="btn-toggle btn-amber"        id="inPolar" onclick="setInput('polar')">Polar</button>
+      </div>
+      <span class="ctrl-hint" id="hint-input">Solo números reales (sin parte imaginaria)</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ PASO 2 ══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">📋 Paso 2 — Ingresa la matriz aumentada [A | b]</div>
+  <div class="card-hint" id="matrix-hint">
+    Llena cada celda con los coeficientes. La columna <span style="color:#f59e0b">b (amarilla)</span> es el vector de fuentes independientes (voltajes o corrientes).
+  </div>
+  <div id="col-headers" class="col-headers"></div>
+  <div id="matrix-rows"></div>
+</div>
+
+<!-- ══ PASO 3 ══════════════════════════════════════════════════════════ -->
+<button id="btn-solve" onclick="solve()">⚡ CALCULAR CON REGLA DE CRAMER</button>
+<div class="error" id="error-box"></div>
+
+<!-- ══ RESULTADOS ══════════════════════════════════════════════════════ -->
+<div class="card" id="results-card" style="display:none">
+  <div class="card-title">✅ Resultados del sistema</div>
+  <div class="card-hint">
+    Cada variable se obtiene dividiendo su subdeterminante entre el determinante principal Δ.
+    Los valores complejos se muestran en <span style="color:#f59e0b">rectangular</span> y <span style="color:#818cf8">polar</span> simultáneamente.
+  </div>
+
+  <!-- Determinante principal -->
+  <div class="result-det">
+    <div class="result-det-label">Determinante principal — Δ (del sistema)</div>
+    <div class="result-det-grid" id="res-detA-grid"></div>
+    <div class="result-det-note">Si Δ = 0, el sistema no tiene solución única (circuito mal planteado).</div>
+  </div>
+
+  <!-- Subdeterminantes -->
+  <div class="divider"><hr><span>SUBDETERMINANTES</span><hr></div>
+  <div class="sub-dets" id="res-subdets"></div>
+
+  <!-- Soluciones -->
+  <div class="solutions-box">
+    <div class="sol-title">🔌 Corrientes / Tensiones del circuito</div>
+    <div id="res-solutions"></div>
+  </div>
+</div>
+
+<!-- ══ CRÉDITOS ════════════════════════════════════════════════════════ -->
+<div class="credit-card">
+  <div class="credit-icon">⚡</div>
+  <div class="credit-by">CREADO POR</div>
+  <div class="credit-name">Estudiantes de Ingeniería Eléctrica</div>
+  <div class="credit-inst">Institución Universitaria Pascual Bravo</div>
+  <div class="credit-place">📍 San Rafael, Antioquia</div>
+</div>
+
+<footer>CALCULADORA CRAMER · CIRCUITOS AC/DC · NÚMEROS COMPLEJOS · 2025</footer>
+
+<script>
+// ══ ESTADO ════════════════════════════════════════════════════════════
+let SIZE = 2, INPUT_MODE = 'real';
+// matrix[r][c] = {a: string, b: string}  (b=0 en modo real)
+let matrix = Array.from({length:4}, () => Array.from({length:5}, () => ({a:'0', b:'0'})));
+
+// ══ MATEMÁTICA COMPLEJA ═══════════════════════════════════════════════
+const toRect = (a, b, mode) => {
+  if (mode === 'real') return {re: a, im: 0};
+  if (mode === 'rect') return {re: a, im: b};
+  const rad = b * Math.PI / 180;
+  return {re: a * Math.cos(rad), im: a * Math.sin(rad)};
+};
+const toPolar = (re, im) => ({
+  mag: Math.sqrt(re*re + im*im),
+  ang: Math.atan2(im, re) * 180 / Math.PI
+});
+const isReal = c => Math.abs(c.im) < 1e-9;
+
+const add  = (a,b) => ({re: a.re+b.re, im: a.im+b.im});
+const sub  = (a,b) => ({re: a.re-b.re, im: a.im-b.im});
+const mul  = (a,b) => ({re: a.re*b.re - a.im*b.im, im: a.re*b.im + a.im*b.re});
+const divC = (n,d) => {
+  const den = d.re*d.re + d.im*d.im;
+  return {re: (n.re*d.re + n.im*d.im)/den, im: (n.im*d.re - n.re*d.im)/den};
+};
+
+// Determinantes por expansión cofactores
+const det2 = (a,b,c,d) => sub(mul(a,d), mul(b,c));
+const det3 = m => {
+  const [a,b,c] = m[0];
+  return add(sub(
+    mul(a, det2(m[1][1],m[1][2],m[2][1],m[2][2])),
+    mul(b, det2(m[1][0],m[1][2],m[2][0],m[2][2]))
+  ), mul(c, det2(m[1][0],m[1][1],m[2][0],m[2][1])));
+};
+const det4 = m => {
+  let result = {re:0, im:0};
+  for (let c=0; c<4; c++) {
+    const minor = m.slice(1).map(row => row.filter((_,j) => j!==c));
+    const cofactor = c % 2 === 0 ? det3(minor) : {re:-det3(minor).re, im:-det3(minor).im};
+    result = add(result, mul(m[0][c], cofactor));
+  }
+  return result;
+};
+
+// ══ FORMATEO ══════════════════════════════════════════════════════════
+const f4 = n => +n.toFixed(4);
+
+const fmtRect = (re, im) => {
+  const r = f4(re), i = f4(im);
+  if (Math.abs(i) < 1e-9) return `${r}`;
+  const s = i >= 0 ? '+ j' : '− j';
+  return `${r} ${s}${Math.abs(i)}`;
+};
+const fmtPolar = (re, im) => {
+  const {mag, ang} = toPolar(re, im);
+  return `${f4(mag)} ∠ ${f4(ang)}°`;
+};
+const fmtReal = re => `${f4(re)}`;
+
+// Devuelve los boxes HTML de resultado (rect + polar, o solo real)
+const resultBoxes = (re, im) => {
+  if (INPUT_MODE === 'real') {
+    return `<div class="result-val-box rvb-real">
+      <div class="rvb-tag rvb-tag-real">REAL</div>
+      <div class="rvb-val">${fmtReal(re)}</div>
+    </div>`;
+  }
+  return `
+    <div class="result-val-box rvb-rect">
+      <div class="rvb-tag rvb-tag-rect">RECTANGULAR</div>
+      <div class="rvb-val">${fmtRect(re, im)}</div>
+    </div>
+    <div class="result-val-box rvb-polar">
+      <div class="rvb-tag rvb-tag-polar">POLAR</div>
+      <div class="rvb-val">${fmtPolar(re, im)}</div>
+    </div>`;
+};
+
+// ══ CONTROLES ═════════════════════════════════════════════════════════
+function setSize(s) {
+  SIZE = s;
+  ['btn2','btn3','btn4'].forEach((id,i) =>
+    document.getElementById(id).classList.toggle('active', i+2===s)
+  );
+  hideResults(); render();
+}
+
+function setInput(m) {
+  INPUT_MODE = m;
+  ['inReal','inRect','inPolar'].forEach(id =>
+    document.getElementById(id).classList.remove('active')
+  );
+  document.getElementById(
+    m==='real' ? 'inReal' : m==='rect' ? 'inRect' : 'inPolar'
+  ).classList.add('active');
+
+  const hints = {
+    real:  'Solo números reales (sin parte imaginaria)',
+    rect:  'Ej: Re = 3 e Im = −4  →  3 − j4  (impedancia compleja)',
+    polar: 'Ej: |Z| = 5 y θ = −53.13°  →  5∠−53.13°'
+  };
+  document.getElementById('hint-input').textContent = hints[m];
+  hideResults(); render();
+}
+
+function hideResults() {
+  document.getElementById('results-card').style.display = 'none';
+  document.getElementById('error-box').style.display = 'none';
+}
+
+// ══ RENDERIZAR MATRIZ ═════════════════════════════════════════════════
+function render() {
+  const cols = SIZE + 1;
+  const isComplex = INPUT_MODE !== 'real';
+
+  // ── Cabeceras de columnas
+  const colNames = [];
+  for (let c=0; c<SIZE; c++) colNames.push(`Z${subscript(c+1,SIZE)}`);
+  colNames.push('Fuente (b)');
+
+  document.getElementById('col-headers').innerHTML =
+    colNames.map((k,i) =>
+      `<div class="col-header${i===SIZE?' b-col':''}">${k}</div>`
+    ).join('');
+
+  // ── Filas
+  const container = document.getElementById('matrix-rows');
+  container.innerHTML = '';
+  const pfx = INPUT_MODE==='rect' ? ['Re','Im'] : ['|Z|','θ°'];
+
+  for (let r=0; r<SIZE; r++) {
+    const row = document.createElement('div');
+    row.className = 'matrix-row';
+    row.innerHTML = `
+      <div class="row-label">
+        <div class="row-num">${r+1}</div>
+        <div class="row-eq">Ec.${r+1}</div>
+      </div>`;
+
+    for (let c=0; c<cols; c++) {
+      const val  = matrix[r][c];
+      const isB  = c === SIZE;
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (isB ? ' b-cell' : '');
+
+      if (!isComplex) {
+        // MODO REAL: un solo campo
+        cell.innerHTML = `
+          <div class="input-single">
+            <input type="number" step="any" inputmode="decimal"
+              value="${val.a}" oninput="matrix[${r}][${c}].a=this.value;matrix[${r}][${c}].b='0'">
+          </div>
+          <div class="input-sublabel">${isB ? 'Fuente' : 'Coef.'}</div>`;
+      } else {
+        // MODO COMPLEJO: dos campos
+        const s1 = isB ? (INPUT_MODE==='rect'?'V real':'|V|') : (INPUT_MODE==='rect'?'Parte real':'Magnitud');
+        const s2 = isB ? (INPUT_MODE==='rect'?'V imag':'θ°')  : (INPUT_MODE==='rect'?'Parte imag.':'Ángulo°');
+        cell.innerHTML = `
+          <div class="input-pair">
+            <div class="input-wrap">
+              <span class="input-pfx">${pfx[0]}</span>
+              <input type="number" step="any" inputmode="decimal"
+                value="${val.a}" oninput="matrix[${r}][${c}].a=this.value">
+            </div>
+            <div class="input-wrap">
+              <span class="input-pfx">${pfx[1]}</span>
+              <input type="number" step="any" inputmode="decimal"
+                value="${val.b}" oninput="matrix[${r}][${c}].b=this.value">
+            </div>
+          </div>
+          <div style="display:flex;gap:3px">
+            <div class="input-sublabel" style="flex:1">${s1}</div>
+            <div class="input-sublabel" style="flex:1">${s2}</div>
+          </div>`;
+      }
+      row.appendChild(cell);
+    }
+    container.appendChild(row);
+  }
+}
+
+function subscript(n, size) {
+  // Para 2x2: solo número, para 3x3/4x4: dos subíndices
+  if (size === 2) return n===1?'₁₁': n===2?'₁₂':'';
+  const subs = ['₁','₂','₃','₄'];
+  return `₁${subs[n-1]}`;
+}
+
+// ══ RESOLVER ══════════════════════════════════════════════════════════
+function getCell(r, c) {
+  const a = parseFloat(matrix[r][c].a) || 0;
+  const b = parseFloat(matrix[r][c].b) || 0;
+  return toRect(a, b, INPUT_MODE);
+}
+
+// Determinante genérico por tamaño
+function detN(m) {
+  const n = m.length;
+  if (n === 2) return det2(m[0][0],m[0][1],m[1][0],m[1][1]);
+  if (n === 3) return det3(m);
+  if (n === 4) return det4(m);
+}
+
+// Extrae submatriz reemplazando columna col con vector B
+function replaceCol(M, B, col) {
+  return M.map((row, r) => row.map((v, c) => c === col ? B[r] : v));
+}
+
+function solve() {
+  hideResults();
+  const errBox = document.getElementById('error-box');
+  try {
+    // Construir matriz A (SIZE x SIZE)
+    const A = Array.from({length:SIZE}, (_,r) =>
+      Array.from({length:SIZE}, (_,c) => getCell(r,c))
+    );
+    // Vector b
+    const B = Array.from({length:SIZE}, (_,r) => getCell(r, SIZE));
+
+    const detA = detN(A);
+    if (toPolar(detA.re, detA.im).mag < 1e-10) throw new Error('cero');
+
+    // Subdeterminantes Δi
+    const dets = Array.from({length:SIZE}, (_,col) =>
+      detN(replaceCol(A, B, col))
+    );
+
+    const solutions = dets.map(d => divC(d, detA));
+    const varLabels = ['I₁','I₂','I₃','I₄'].slice(0, SIZE);
+
+    // ── Mostrar determinante principal
+    document.getElementById('res-detA-grid').innerHTML = resultBoxes(detA.re, detA.im);
+
+    // ── Subdeterminantes
+    document.getElementById('res-subdets').innerHTML = dets.map((d,i) => `
+      <div class="sub-det">
+        <div class="sub-det-label">Δ${i+1}</div>
+        <div class="sub-det-desc">Col.${i+1} → b</div>
+        <div class="sub-det-vals">
+          ${INPUT_MODE === 'real'
+            ? `<div class="sub-det-val" style="color:#4ade80">${fmtReal(d.re)}</div>`
+            : `<div class="sub-det-val"><span style="color:#f59e0b;font-size:9px">RECT </span>${fmtRect(d.re,d.im)}</div>
+               <div class="sub-det-alt"><span style="color:#818cf8;font-size:9px">POL  </span>${fmtPolar(d.re,d.im)}</div>`
+          }
+        </div>
+      </div>`).join('');
+
+    // ── Soluciones
+    document.getElementById('res-solutions').innerHTML = solutions.map((s,i) => `
+      <div class="sol-row">
+        <div class="sol-header">
+          <div class="sol-var">${varLabels[i]}</div>
+          <div class="sol-eq">=</div>
+          <div style="font-size:10px;color:#4a7c78">Δ${i+1} / Δ</div>
+        </div>
+        <div class="sol-vals">
+          ${resultBoxes(s.re, s.im)}
+        </div>
+      </div>`).join('');
+
+    document.getElementById('results-card').style.display = 'block';
+    setTimeout(() =>
+      document.getElementById('results-card').scrollIntoView({behavior:'smooth', block:'start'})
+    , 100);
+
+  } catch(e) {
+    errBox.innerHTML = e.message === 'cero'
+      ? '⚠️ <strong>Determinante principal = 0</strong><br>El sistema no tiene solución única. Revisa que las ecuaciones sean linealmente independientes.'
+      : '⚠️ Error al calcular. Verifica que todos los valores estén ingresados correctamente.';
+    errBox.style.display = 'block';
+  }
+}
+
+// ══ INICIALIZAR ═══════════════════════════════════════════════════════
+render();
+</script>
+</body>
+</html>
